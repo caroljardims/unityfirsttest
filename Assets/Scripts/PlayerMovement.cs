@@ -37,10 +37,13 @@ public class PlayerMovement : MonoBehaviour
             HandleStandingIdleState();
             break;
             case PlayerState.SittingIdle:
+            HandleSittingIdleState();
             break;
             case PlayerState.StandingUp:
+            HandleStandingUpState();
             break;
             case PlayerState.SittingDown:
+            HandleSittingDownState();
             break;
             case PlayerState.Walking:
             HandleWalkingState();
@@ -55,9 +58,13 @@ public class PlayerMovement : MonoBehaviour
     IEnumerator SitAfterWait()
     {
         yield return new WaitForSecondsRealtime(fatigueTimer);
-        Sit();
+        HandleSittingDownState();
     }
-
+    private void HandleSittingIdleState() {
+        float horizontalInput = Input.GetAxis("Horizontal");
+        bool isMoving = horizontalInput != 0;
+        if (isMoving) { currentState = PlayerState.StandingUp; }
+    }
     private void HandleStandingIdleState()
     {
         float horizontalInput = Input.GetAxis("Horizontal");
@@ -72,8 +79,9 @@ public class PlayerMovement : MonoBehaviour
         bool isMoving = horizontalInput != 0;
         animator.SetBool("isMoving", isMoving);
         rb.velocity = new Vector2(horizontalInput * MoveSpeed, rb.velocity.y);
-        
-        if (sitCoroutine != null) {
+
+        if (sitCoroutine != null) 
+        {
             StopCoroutine(sitCoroutine);
             sitCoroutine = null; 
         }
@@ -85,18 +93,20 @@ public class PlayerMovement : MonoBehaviour
         if (horizontalInput == 0) { currentState = PlayerState.StandingIdle; }
     }
 
-    private void Sit()
+    private void HandleSittingDownState()
     {
         animator.SetBool("isSat", true);
         animator.SetBool("isMoving", false);
         animator.SetTrigger("sit");
+        currentState = PlayerState.SittingIdle;
     }
 
-    private void StandUp()
+    private void HandleStandingUpState()
     {
         animator.SetBool("isSat", false);
         animator.SetBool("isMoving", true);
         animator.SetTrigger("standup");
+        currentState = PlayerState.StandingIdle;
     }
 
     // Check if player is grounded (optional)
