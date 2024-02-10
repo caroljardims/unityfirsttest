@@ -20,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     private PlayerState currentState;
     private Coroutine sitCoroutine;
+    private bool isMoving;
 
     void Start()
     {
@@ -31,7 +32,6 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-
         switch (currentState){
             case PlayerState.StandingIdle:
             HandleStandingIdleState();
@@ -49,52 +49,31 @@ public class PlayerMovement : MonoBehaviour
             HandleWalkingState();
             break;
         }
-
-        if (!animator.GetBool("isMoving") && sitCoroutine == null) {
-            sitCoroutine = StartCoroutine(SitAfterWait());
-        }
     }
 
     IEnumerator SitAfterWait()
     {
         yield return new WaitForSecondsRealtime(fatigueTimer);
-        HandleSittingDownState();
+        currentState = PlayerState.SittingDown;
     }
-    private void HandleSittingIdleState() {
-        float horizontalInput = Input.GetAxis("Horizontal");
-        bool isMoving = horizontalInput != 0;
-        if (isMoving) { currentState = PlayerState.StandingUp; }
-    }
+
     private void HandleStandingIdleState()
     {
         float horizontalInput = Input.GetAxis("Horizontal");
-        bool isMoving = horizontalInput != 0;
+        isMoving = horizontalInput != 0;
+        animator.SetBool("isMoving", isMoving);
         if (isMoving) { currentState = PlayerState.Walking; }
         if (!isMoving && sitCoroutine == null) { sitCoroutine = StartCoroutine(SitAfterWait()); }
     }
-
-    private void HandleWalkingState() 
-    {
+    private void HandleSittingIdleState() {
         float horizontalInput = Input.GetAxis("Horizontal");
-        bool isMoving = horizontalInput != 0;
-        animator.SetBool("isMoving", isMoving);
-        rb.velocity = new Vector2(horizontalInput * MoveSpeed, rb.velocity.y);
-
-        if (sitCoroutine != null) 
-        {
-            StopCoroutine(sitCoroutine);
-            sitCoroutine = null; 
-        }
-
-       if (shouldFlipSprite(horizontalInput,spriteRenderer.flipX)) 
-       {
-            spriteRenderer.flipX = !spriteRenderer.flipX;
-       }
-        if (horizontalInput == 0) { currentState = PlayerState.StandingIdle; }
+        isMoving = horizontalInput != 0;
+        if (isMoving) { currentState = PlayerState.StandingUp; }
     }
 
     private void HandleSittingDownState()
     {
+        isMoving = false;
         animator.SetBool("isSat", true);
         animator.SetBool("isMoving", false);
         animator.SetTrigger("sit");
@@ -103,37 +82,45 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleStandingUpState()
     {
-        animator.SetBool("isSat", false);
-        animator.SetBool("isMoving", true);
         animator.SetTrigger("standup");
+        animator.SetBool("isSat", false);
         currentState = PlayerState.StandingIdle;
     }
 
-    // Check if player is grounded (optional)
-    private bool IsGrounded()
+    private void HandleWalkingState() 
     {
-        Vector2 raycastOrigin = transform.position;
-        float raycastLength = 0.1f; // Adjust this based on your player collider size
-        int groundLayer = LayerMask.GetMask("Ground"); // Assuming your layer is named "Ground"
 
-        RaycastHit2D hit = Physics2D.Raycast(raycastOrigin, Vector2.down, raycastLength, groundLayer);
-        // Now `hit` will only contain collisions with objects in the "Ground" layer
-        return hit.collider != null;
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+        if (stateInfo.IsName("StandingIdle") || stateInfo.IsName("Walking"))
+        {
+            // Player is not in sitting state, allow walking
+            float horizontalInput = Input.GetAxis("Horizontal");
+            isMoving = Mathf.Abs(horizontalInput) > 0.1f;
+            if (isMoving) {
+                animator.SetBool("isMoving", true);
+                rb.velocity = new Vector2(horizontalInput * MoveSpeed, rb.velocity.y);
+
+                if (sitCoroutine != null) 
+                {
+                    StopCoroutine(sitCoroutine);
+                    sitCoroutine = null; 
+                }
+
+                if (shouldFlipSprite(horizontalInput,spriteRenderer.flipX)) 
+                {
+                        spriteRenderer.flipX = !spriteRenderer.flipX;
+                }
+            }
+        }
+        else
+        {
+            // Player is in sitting state, prevent walking
+            // You may choose to disable movement or take other actions here
+        }
+            if (!isMoving) { currentState = PlayerState.StandingIdle; }
+        }
+            private bool shouldFlipSprite(float horizontalInput, bool flipX)
+        {
+            return horizontalInput < 0 && !flipX || horizontalInput > 0 && flipX;
+        }
     }
-
-    private bool shouldFlipSprite(float horizontalInput, bool flipX)
-    {
-        return horizontalInput < 0 && !flipX || horizontalInput > 0 && flipX;
-    }
-
-    // private void PerformJump()
-    // {
-    //     if (Input.GetButtonDown("Jump") && IsGrounded())
-    //     {
-    //         rb.AddForce(Vector2.up * JumpForce, ForceMode2D.Impulse);
-    //         StopCoroutine(sitCoroutine);
-    //         sitCoroutine = null; 
-    //     }
-
-    // }
-}
