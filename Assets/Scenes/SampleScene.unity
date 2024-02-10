@@ -205,7 +205,7 @@ Transform:
   m_GameObject: {fileID: 230472176}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4.95, y: -0.33, z: 0}
+  m_LocalPosition: {x: -9, y: -1.95, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -287,6 +287,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   MoveSpeed: 5
   JumpForce: 4
+  fatigueTimer: 5
 --- !u!95 &230472182
 Animator:
   serializedVersion: 5
@@ -479,8 +480,8 @@ Transform:
   m_GameObject: {fileID: 533952096}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.05, y: -5, z: 0}
-  m_LocalScale: {x: 18.8007, y: 0.6262964, z: 1}
+  m_LocalPosition: {x: 0.0355, y: -4.8409, z: 0}
+  m_LocalScale: {x: 23.632141, y: 0.3081168, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
