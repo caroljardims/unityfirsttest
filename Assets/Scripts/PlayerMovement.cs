@@ -10,6 +10,9 @@ public class PlayerMovement : MonoBehaviour
         Walking,
         StandingUp,
         SittingDown,
+        LeaningDown,
+        Eating,
+        LeaningUp,
     }
     public float MoveSpeed;
     public float JumpForce;
@@ -20,7 +23,8 @@ public class PlayerMovement : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     private PlayerState currentState;
     private Coroutine sitCoroutine;
-    private bool isMoving;
+    private bool isWalking;
+    private bool isEating;
 
     void Start()
     {
@@ -48,7 +52,18 @@ public class PlayerMovement : MonoBehaviour
             case PlayerState.Walking:
             HandleWalkingState();
             break;
+            case PlayerState.LeaningDown:
+            HandleLeaningDownState();
+            break;
+            case PlayerState.Eating:
+            HandleEatingState();
+            break;
+            case PlayerState.LeaningUp:
+            HandleLeaningUpState();
+            break;
         }
+
+        HandleCoroutine();
     }
 
     IEnumerator SitAfterWait()
@@ -57,23 +72,40 @@ public class PlayerMovement : MonoBehaviour
         currentState = PlayerState.SittingDown;
     }
 
+    private void HandleCoroutine() {
+        if (currentState == PlayerState.StandingIdle && !isWalking && sitCoroutine == null) 
+        {
+            sitCoroutine = StartCoroutine(SitAfterWait());
+        }
+        if (currentState != PlayerState.StandingIdle && isWalking && sitCoroutine != null)
+        {
+            StopCoroutine(sitCoroutine);
+            sitCoroutine = null;
+        }
+    }
     private void HandleStandingIdleState()
     {
         float horizontalInput = Input.GetAxis("Horizontal");
-        isMoving = horizontalInput != 0;
-        animator.SetBool("isMoving", isMoving);
-        if (isMoving) { currentState = PlayerState.Walking; }
-        if (!isMoving && sitCoroutine == null) { sitCoroutine = StartCoroutine(SitAfterWait()); }
+        float verticalInput = Input.GetAxis("Vertical");
+        isWalking = horizontalInput != 0;
+        animator.SetBool("isMoving", isWalking);
+        if (isWalking) { currentState = PlayerState.Walking; }
+        if (!isWalking && verticalInput < 0) 
+        { 
+            animator.SetTrigger("eat");
+            currentState = PlayerState.LeaningDown;
+        }
     }
     private void HandleSittingIdleState() {
         float horizontalInput = Input.GetAxis("Horizontal");
-        isMoving = horizontalInput != 0;
-        if (isMoving) { currentState = PlayerState.StandingUp; }
+        float verticalInput = Input.GetAxis("Vertical");
+        isWalking = horizontalInput != 0;
+        if (isWalking || verticalInput > 0) { currentState = PlayerState.StandingUp; }
     }
 
     private void HandleSittingDownState()
     {
-        isMoving = false;
+        isWalking = false;
         animator.SetBool("isSat", true);
         animator.SetBool("isMoving", false);
         animator.SetTrigger("sit");
@@ -95,16 +127,10 @@ public class PlayerMovement : MonoBehaviour
         {
             // Player is not in sitting state, allow walking
             float horizontalInput = Input.GetAxis("Horizontal");
-            isMoving = Mathf.Abs(horizontalInput) > 0.1f;
-            if (isMoving) {
+            isWalking = Mathf.Abs(horizontalInput) > 0.1f;
+            if (isWalking) {
                 animator.SetBool("isMoving", true);
                 rb.velocity = new Vector2(horizontalInput * MoveSpeed, rb.velocity.y);
-
-                if (sitCoroutine != null) 
-                {
-                    StopCoroutine(sitCoroutine);
-                    sitCoroutine = null; 
-                }
 
                 if (shouldFlipSprite(horizontalInput,spriteRenderer.flipX)) 
                 {
@@ -117,10 +143,32 @@ public class PlayerMovement : MonoBehaviour
             // Player is in sitting state, prevent walking
             // You may choose to disable movement or take other actions here
         }
-            if (!isMoving) { currentState = PlayerState.StandingIdle; }
-        }
-            private bool shouldFlipSprite(float horizontalInput, bool flipX)
-        {
-            return horizontalInput < 0 && !flipX || horizontalInput > 0 && flipX;
+            if (!isWalking) { currentState = PlayerState.StandingIdle; }
+    }
+    
+    private void HandleLeaningDownState()
+    {
+        animator.SetBool("isEating", true);
+        currentState = PlayerState.Eating;
+    }
+
+    private void HandleEatingState()
+    {
+        float verticalInput = Input.GetAxis("Vertical");
+        float horizontalInput = Input.GetAxis("Horizontal");
+
+        if (verticalInput > 0 || horizontalInput != 0) {
+            animator.SetBool("isEating", false);
+            currentState = PlayerState.LeaningUp;
         }
     }
+
+    private void HandleLeaningUpState()
+    {
+        currentState = PlayerState.StandingUp;
+    }
+    private bool shouldFlipSprite(float horizontalInput, bool flipX)
+    {
+        return horizontalInput < 0 && !flipX || horizontalInput > 0 && flipX;
+    }
+}
