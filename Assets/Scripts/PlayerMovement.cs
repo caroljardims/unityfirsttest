@@ -159,6 +159,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (verticalInput > 0 || horizontalInput != 0) {
             animator.SetBool("isEating", false);
+            animator.SetTrigger("standup");
             currentState = PlayerState.LeaningUp;
         }
     }
